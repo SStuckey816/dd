@@ -1,0 +1,38 @@
+FROM ubuntu:latest
+
+
+
+RUN apt update 
+RUN apt-get install -y net-tools
+RUN apt-get install -y iputils-ping
+RUN apt-get install -y dnsmasq dnsutils
+RUN apt-get install -y curl
+RUN apt install -y iproute2
+RUN apt install -y tcpdump
+
+# Install Python and pip
+RUN apt-get update && \
+    apt-get install -y python3 python3-pip && \
+    ln -s /usr/bin/python3 /usr/bin/python 
+
+
+# Installing uv package manager
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+ENV PATH="/root/.local/bin:${PATH}"
+
+# Creating python environment
+RUN uv venv
+COPY requirements.txt /requirements.txt
+
+# You might have to rerun the following lines is you are using docker exec -it client sh
+RUN . .venv/bin/activate # RERUN
+RUN uv pip install -r requirements.txt # RERUN
+
+RUN apt install -y python3-scapy
+
+RUN rm /etc/dnsmasq.conf
+
+COPY dns.conf /etc/dnsmasq.conf
+COPY listen.py /
+
+#CMD ["python3", "/listen.py"]

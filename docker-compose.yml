@@ -1,0 +1,51 @@
+version: '3.8'
+
+networks:
+  hwnet:
+    driver: bridge
+    ipam: 
+      config: 
+        - subnet: 172.28.10.0/24
+
+services:
+
+  dns:
+    build:
+      context: .
+      dockerfile: Dockerfile.dns
+    container_name: dns
+    cap_add:
+      - NET_RAW # Needed for tcpdump in some environments
+      - NET_ADMIN # Needed for tcpdump in some environments
+    networks:
+      hwnet:
+        ipv4_address: 172.28.10.2
+        mac_address: "02:42:ac:11:00:02" 
+    ports:
+      - target: 53
+        published: 53
+        protocol: udp
+        mode: ingress
+    command: tail -f /dev/null
+    #command:  python3 /listen.py
+  client:
+    build:
+      context: .
+      dockerfile: Dockerfile.client
+    container_name: client
+    privileged: true
+    depends_on:
+      - dns
+    networks:
+      hwnet:
+        ipv4_address: 172.28.10.12
+        mac_address: "02:42:ac:11:00:12"
+        aliases:
+          - client.local
+    cap_add:
+      - NET_RAW # Needed for tcpdump in some environments
+      - NET_ADMIN # Needed for tcpdump in some environments
+    sysctls:
+      net.ipv4.ip_forward: "1"
+    #command: python3 /exfiltrate.py
+    command: bash /bash.sh
